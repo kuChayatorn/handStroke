@@ -6,6 +6,7 @@ import { Object3D } from 'three'
 import * as THREE from 'three'
 import { CustomHand } from './Components/Hand'
 import XRSpacePosition from './Components/XRSpacePosition'
+import { Hand } from '../Hand'
 
 const store = createXRStore()
 
@@ -157,6 +158,7 @@ function App() {
         camera={{ position: [0, 0, 10], fov: 55 }}
       >
         <XR store={store}>
+          <Hand/>
           {/* <HandPosition /> */}
           <HandPosition2 setRed={setRed} />
           <XRSpacePosition/>

@@ -6,63 +6,52 @@ import { Text } from '@react-three/drei';
 
 function XRSpacePosition() {
     const session = useXR((xr) => xr.session);
-    const [isDisplay, setIsDisplay] = useState(false);
-    const [jointPose1, setJointPose1] = useState(0);
-    let xrFrame = null;
-    let referenceSpace = null;
+    const [jointPositions, setJointPositions] = useState([]);
+
     useFrame((state) => {
         if (session) {
-            xrFrame = state.gl.xr.getFrame();
-            referenceSpace = state.gl.xr.getReferenceSpace();
-            // console.log(session.inputSources.length)
-            // console.log(xrFrame)
-            // console.log(referenceSpace)
-            if (xrFrame && referenceSpace) {
-                session.inputSources.forEach((inputSource) => {
-                    // For controllers with gripSpace
-                    // if (inputSource.gripSpace) {
-                    //     const pose = xrFrame.getPose(inputSource.gripSpace, referenceSpace);
-                    //     if (pose) {
-                    //         const { position, orientation } = pose.transform;
-                    //         console.log(`Controller position: (${position.x}, ${position.y}, ${position.z})`);
-                    //     }
-                    // }
+            const xrFrame = state.gl.xr.getFrame();
+            const referenceSpace = state.gl.xr.getReferenceSpace();
 
-                    // For hand tracking
-                    // if (inputSource.hand) {
-                    //     inputSource.hand.values().forEach((inputJoint, i) => {
-                    //         const jointPose = xrFrame.getJointPose(inputJoint, referenceSpace);
-                    //         if (i == 1 && jointPose1 !== undefined) {
-                    //             if (!isDisplay) {
-                    //                 setIsDisplay(true);
-                    //             };
-                    //             setJointPose1(inputJoint)
-                    //         }
-                    //         if (jointPose) {
-                    //             const { position } = jointPose.transform;
-                    //             console.log(`Hand joint position: (${position.x}, ${position.y}, ${position.z})`);
-                    //         }
-                    //     });
-                    // }
+            if (xrFrame && referenceSpace) {
+                const positions = [];
+                session.inputSources.forEach((inputSource) => {
                     if (inputSource.hand) {
-                        const jointPose1 = xrFrame.getJointPose(inputSource.hand.get(1), referenceSpace);
-                        if (jointPose1) {
-                            const { position } = jointPose1.transform;
-                            console.log(`Hand joint position: (${position.x}, ${position.y}, ${position.z})`);
-                            if (!isDisplay) { (setIsDisplay(true)) }
-                            setJointPose1(position.x)
-                        }
+                        inputSource.hand.forEach((inputJoint, index) => {
+                            const jointPose = xrFrame.getJointPose(inputJoint, referenceSpace);
+                            if (jointPose) {
+                                const { position } = jointPose.transform;
+                                positions.push(new THREE.Vector3(-position.x, position.y, position.z));
+                            }
+                        });
+                        setJointPositions(positions);
                     }
                 });
             }
         }
     });
 
-    return (<>
-        <Text position={[0, 0, 0]} fontSize={0.2}>
-            {(isDisplay) ? jointPose1 : 'nono'}
-        </Text>
-    </>
+    return (
+        <>
+            <group position={[0, 0, 10]}>
+                {jointPositions.map((pos, index) => (
+                    <mesh key={index} position={pos}>
+                        <sphereGeometry args={[0.01, 32, 32]} />
+                        <meshBasicMaterial color="red" />
+                    </mesh>
+                ))}
+            </group>
+
+            {jointPositions.map((pos, index) => (
+                <Text key={index} position={[2, 0.5 + index * 0.1, 0.5]} fontSize={0.1}>
+                    Joint {index}: X({pos.x.toFixed(2)}), Y({pos.y.toFixed(2)}), Z({pos.z.toFixed(2)})
+                </Text>
+            ))}
+            <Text position={[-2, 1, -0.5]} fontSize={0.2}>
+                {jointPositions.length > 0 ? `Tracking ${jointPositions.length} joints` : 'No hand detected'}
+            </Text>
+
+        </>
     );
 }
 
