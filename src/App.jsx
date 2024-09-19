@@ -5,6 +5,7 @@ import { Environment, OrbitControls, Text, Torus } from '@react-three/drei'
 import { Object3D } from 'three'
 import * as THREE from 'three'
 import { CustomHand } from './Components/Hand'
+import XRSpacePosition from './Components/XRSpacePosition'
 
 const store = createXRStore()
 
@@ -43,25 +44,25 @@ const extractPositionsFromData = (data) => {
 };
 
 function HandPosition2({setRed}) {
-  const handState = useXRInputSourceState('hand', 'right'); // return XRHandState
+  const handState = useXRInputSourceState('controller', 'right'); // return XRHandState
   const vector = new THREE.Vector3();
   const [vec, setVec] = useState(new THREE.Vector3())
   const [pos, setPos] = useState(new Float32Array)
   let positions = [];
   if (handState) {setRed(true) } ;
   useFrame(() => {
-    console.log(handState)
-    setPos(handState?.pose.data);
-    // if (handState) {
-    //   const controller =
-    //     (handState.object?.children[0].children[0] ?? undefined);
-    //   console.log(controller)
-    //   if (controller) {
-    //     controller.getWorldPosition(vector);
-    //     setVec(vector)
-    //     console.log(vector);
-    //   }
-    // }
+    // console.log(handState)
+    // setPos(handState?.pose.data);
+    if (handState) {
+      const controller =
+        (handState.object?.children[0].children[0] ?? undefined);
+      // console.log(controller)
+      if (controller) {
+        controller.getWorldPosition(vector);
+        setVec(vector)
+        // console.log(vector);
+      }
+    }
     // if (handState) {
     //   const controller =
     //     (handState?.hand.object?.children[0].children[0] ?? undefined);
@@ -78,10 +79,10 @@ function HandPosition2({setRed}) {
     scale={[0.1, 0.1, 0.1]}
     fontSize={10}
   >
-    {/* {`${vec.x.toFixed(2)}, ${vec.y.toFixed(2)}, ${vec.z.toFixed(2)}`} */}
+    {`${vec.x.toFixed(2)}, ${vec.y.toFixed(2)}, ${vec.z.toFixed(2)}`}
     {/* {handState.object?.children[0].children?.map((c, i) => <div key={i}>{c.name}</div>)} */}
     {/* {handState?.pose ? `(${handState.pose.data})` : 'no pose'} */}
-    {handState?.pose ? `(${pos.length})` : 'no pose'}
+    {/* {handState?.pose ? `(${pos.length})` : 'no pose'} */}
   </Text>
 }
 function HandTracker() {
@@ -158,6 +159,7 @@ function App() {
         <XR store={store}>
           {/* <HandPosition /> */}
           <HandPosition2 setRed={setRed} />
+          <XRSpacePosition/>
           <XROrigin position={[0, 0, 10]}>
           </XROrigin>
           <OrbitControls />
