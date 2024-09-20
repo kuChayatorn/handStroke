@@ -6,7 +6,7 @@ import { Object3D } from 'three'
 import * as THREE from 'three'
 import { CustomHand } from './Components/Hand'
 import XRSpacePosition from './Components/XRSpacePosition'
-import { Hand } from '../Hand'
+import { Hand } from './Components/Hand'
 
 const store = createXRStore()
 
@@ -64,16 +64,6 @@ function HandPosition2({setRed}) {
         // console.log(vector);
       }
     }
-    // if (handState) {
-    //   const controller =
-    //     (handState?.hand.object?.children[0].children[0] ?? undefined);
-    //   console.log(controller)
-    //   if (controller) {
-    //     controller.getWorldPosition(vector);
-    //     setVec(vector)
-    //     console.log(vector);
-    //   }
-    // }
   });
   return <Text
     position={[vector.x, vector.y, vector.z]}
@@ -158,9 +148,9 @@ function App() {
         camera={{ position: [0, 0, 10], fov: 55 }}
       >
         <XR store={store}>
-          <Hand/>
           {/* <HandPosition /> */}
-          <HandPosition2 setRed={setRed} />
+          {/* <HandPosition2 setRed={setRed} /> */}
+          {/* <Hand/> */}
           <XRSpacePosition/>
           <XROrigin position={[0, 0, 10]}>
           </XROrigin>
