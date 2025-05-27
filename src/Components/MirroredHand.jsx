@@ -2,45 +2,37 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { SkeletonUtils } from 'three-stdlib'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
 
-export function Hand({ setTrackingData }) {
-  const { scene } = useGLTF('/hand.glb', true)
+export function MirroredHand({ trackingData }) {
+  const { scene } = useGLTF('/hand.glb')
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
 
   const [mesh, setMesh] = useState(null)
   const [arm, setArm] = useState(null)
   const [skeleton, setSkeleton] = useState(null)
 
-  // ⏳ Delay object assignment until clone is fully attached
   useEffect(() => {
     let foundMesh = null
     let foundArm = null
 
-    clone.traverse((obj) => {
+    clone.traverse(obj => {
       if (obj.name === 'leapmotion_basehand_mesh') foundMesh = obj
       if (obj.name === 'Armature') foundArm = obj
     })
-
-    if (foundMesh) console.log('✅ Found mesh:', foundMesh)
-    else console.warn("❌ 'leapmotion_basehand_mesh' not found in GLTF")
-
-    if (foundArm) console.log('✅ Found armature:', foundArm)
-    else console.warn("❌ 'Armature' not found in GLTF")
 
     setMesh(foundMesh)
     setArm(foundArm)
     setSkeleton(foundMesh?.skeleton || null)
   }, [clone])
 
-  const applyHandTracking = (data) => {
+  const applyMirroredTracking = (data) => {
     const rotateBone = (name, x, y, z) => {
-      const bone = skeleton?.bones.find((b) => b.name === name)
+      const bone = skeleton?.bones.find(b => b.name === name)
       if (bone) {
         bone.rotation.set(
           THREE.MathUtils.degToRad(x),
-          THREE.MathUtils.degToRad(y),
-          THREE.MathUtils.degToRad(z)
+          -THREE.MathUtils.degToRad(y),
+          -THREE.MathUtils.degToRad(z)
         )
       }
     }
@@ -50,29 +42,18 @@ export function Hand({ setTrackingData }) {
     rotateBone('Bone013', data.middle.x, data.middle.y, data.middle.z)
     rotateBone('Bone017', data.ring.x, data.ring.y, data.ring.z)
     rotateBone('Bone021', data.pinky.x, data.pinky.y, data.pinky.z)
-    
   }
 
-  useFrame(({ clock }) => {
-    if (!skeleton) return
-    const t = clock.getElapsedTime()
-    const mock = {
-      thumb: { x: Math.sin(t * 1.5) * 30, y: 0, z: 0 },
-      index: { x: Math.sin(t * 2.0) * 45, y: 0, z: 0 },
-      middle: { x: Math.sin(t * 2.5) * 45, y: 0, z: 0 },
-      ring: { x: Math.sin(t * 2.2) * 30, y: 0, z: 0 },
-      pinky: { x: Math.sin(t * 2.8) * 25, y: 0, z: 0 },
+  useEffect(() => {
+    if (trackingData && skeleton) {
+      applyMirroredTracking(trackingData)
     }
-    setTrackingData?.(mock)
-    applyHandTracking(mock)
-  })
+  }, [trackingData, skeleton])
 
-  if (!mesh || !skeleton || !arm) {
-    return null
-  }
+  if (!mesh || !skeleton || !arm) return null
 
   return (
-    <group position={[-0.15, 1.3, -0.3]} scale={[1.5, 1.5, 1.5]}>
+    <group position={[30, 1.3, -0.3]} scale={[-1.5, 1.5, 1.5]}>
       <primitive object={arm} />
       <skinnedMesh
         geometry={mesh.geometry}
