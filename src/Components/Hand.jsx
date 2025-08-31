@@ -1,78 +1,68 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useGLTF } from '@react-three/drei'
-import { SkeletonUtils } from 'three-stdlib'
-import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useGLTF } from '@react-three/drei';
+import { SkeletonUtils } from 'three-stdlib';
+import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 
-export function Hand({ setTrackingData }) {
-  const { scene } = useGLTF('/hand.glb', true)
-  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
+export function Hand({ wristTransform }) {
+  const { scene } = useGLTF('/hand.glb');
+  const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
 
-  const [mesh, setMesh] = useState(null)
-  const [arm, setArm] = useState(null)
-  const [skeleton, setSkeleton] = useState(null)
+  const groupRef = useRef();
+  const [mesh, setMesh] = useState(null);
+  const [arm, setArm] = useState(null);
+  const [skeleton, setSkeleton] = useState(null);
 
-  // ⏳ Delay object assignment until clone is fully attached
   useEffect(() => {
-    let foundMesh = null
-    let foundArm = null
-
+    let foundMesh = null;
+    let foundArm = null;
     clone.traverse((obj) => {
-      if (obj.name === 'leapmotion_basehand_mesh') foundMesh = obj
-      if (obj.name === 'Armature') foundArm = obj
-    })
+      if (obj.name === 'leapmotion_basehand_mesh') foundMesh = obj;
+      if (obj.name === 'Armature') foundArm = obj;
+    });
+    setMesh(foundMesh);
+    setArm(foundArm);
+    setSkeleton(foundMesh?.skeleton || null);
+  }, [clone]);
 
-    if (foundMesh) console.log('✅ Found mesh:', foundMesh)
-    else console.warn("❌ 'leapmotion_basehand_mesh' not found in GLTF")
+  useFrame(() => {
+    if (!wristTransform || !groupRef.current || !skeleton) return;
 
-    if (foundArm) console.log('✅ Found armature:', foundArm)
-    else console.warn("❌ 'Armature' not found in GLTF")
+    groupRef.current.position.copy(wristTransform.position);
+    groupRef.current.quaternion.copy(wristTransform.quaternion);
 
-    setMesh(foundMesh)
-    setArm(foundArm)
-    setSkeleton(foundMesh?.skeleton || null)
-  }, [clone])
-
-  const applyHandTracking = (data) => {
-    const rotateBone = (name, x, y, z) => {
-      const bone = skeleton?.bones.find((b) => b.name === name)
-      if (bone) {
-        bone.rotation.set(
-          THREE.MathUtils.degToRad(x),
-          THREE.MathUtils.degToRad(y),
-          THREE.MathUtils.degToRad(z)
-        )
-      }
-    }
-
-    rotateBone('Bone004', data.thumb.x, data.thumb.y, data.thumb.z)
-    rotateBone('Bone009', data.index.x, data.index.y, data.index.z)
-    rotateBone('Bone013', data.middle.x, data.middle.y, data.middle.z)
-    rotateBone('Bone017', data.ring.x, data.ring.y, data.ring.z)
-    rotateBone('Bone021', data.pinky.x, data.pinky.y, data.pinky.z)
-    
-  }
-
-  useFrame(({ clock }) => {
-    if (!skeleton) return
-    const t = clock.getElapsedTime()
+    // Optional: Apply mock finger animation
+    const t = performance.now() / 1000;
     const mock = {
       thumb: { x: Math.sin(t * 1.5) * 30, y: 0, z: 0 },
       index: { x: Math.sin(t * 2.0) * 45, y: 0, z: 0 },
       middle: { x: Math.sin(t * 2.5) * 45, y: 0, z: 0 },
       ring: { x: Math.sin(t * 2.2) * 30, y: 0, z: 0 },
       pinky: { x: Math.sin(t * 2.8) * 25, y: 0, z: 0 },
-    }
-    setTrackingData?.(mock)
-    applyHandTracking(mock)
-  })
+    };
 
-  if (!mesh || !skeleton || !arm) {
-    return null
-  }
+    const rotateBone = (name, x, y, z) => {
+      const bone = skeleton?.bones.find((b) => b.name === name);
+      if (bone) {
+        bone.rotation.set(
+          THREE.MathUtils.degToRad(x),
+          THREE.MathUtils.degToRad(y),
+          THREE.MathUtils.degToRad(z)
+        );
+      }
+    };
+
+    rotateBone('Bone004', mock.thumb.x, mock.thumb.y, mock.thumb.z);
+    rotateBone('Bone009', mock.index.x, mock.index.y, mock.index.z);
+    rotateBone('Bone013', mock.middle.x, mock.middle.y, mock.middle.z);
+    rotateBone('Bone017', mock.ring.x, mock.ring.y, mock.ring.z);
+    rotateBone('Bone021', mock.pinky.x, mock.pinky.y, mock.pinky.z);
+  });
+
+  if (!mesh || !skeleton || !arm || !wristTransform) return null;
 
   return (
-    <group position={[-0.15, 1.3, -0.3]} scale={[1.5, 1.5, 1.5]}>
+    <group ref={groupRef} scale={[1.5, 1.5, 1.5]}>
       <primitive object={arm} />
       <skinnedMesh
         geometry={mesh.geometry}
@@ -80,7 +70,7 @@ export function Hand({ setTrackingData }) {
         skeleton={skeleton}
       />
     </group>
-  )
+  );
 }
 
-useGLTF.preload('/hand.glb')
+useGLTF.preload('/hand.glb');
